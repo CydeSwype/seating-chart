@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seat Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="app">
+  <header class="bar">
+    <div class="brand"><b>Seat Plan</b><span>Alix</span></div>
+    <input id="title" aria-label="Layout name">
+
+    <div class="seg" role="group" aria-label="Mode">
+      <button id="m-assign" aria-pressed="true">Assign</button>
+      <button id="m-layout" aria-pressed="false">Layout</button>
+    </div>
+
+    <span class="spacer"></span>
+
+    <button class="btn icon" id="undo" title="Undo (⌘Z)" aria-label="Undo">↶</button>
+    <button class="btn icon" id="redo" title="Redo (⇧⌘Z)" aria-label="Redo">↷</button>
+    <span class="savedat" id="savedat"></span>
+    <button class="btn" id="save">Save</button>
+    <button class="btn" id="datadlg">Data</button>
+    <button class="btn" id="print">Print</button>
+    <button class="btn primary" id="share">Share link</button>
+  </header>
+
+  <aside class="rail">
+    <div class="rail-head">
+      <div class="eyebrow">People</div>
+      <div class="counts" id="counts"></div>
+      <form class="add-row" id="addform">
+        <input id="pname" placeholder="Add person" aria-label="Person name" autocomplete="off">
+        <input id="team" placeholder="Team" aria-label="Team" autocomplete="off">
+        <button class="btn" type="submit">Add</button>
+      </form>
+      <input id="search" placeholder="Search people or teams" aria-label="Search people" autocomplete="off">
+    </div>
+    <div class="rail-scroll"><div id="pool"></div></div>
+  </aside>
+
+  <div class="floorstage">
+    <div class="floorwrap">
+      <div id="floorsizer"><div id="floor"></div><div id="marquee" hidden></div></div>
+    </div>
+
+    <div class="floortools">
+      <span id="layouttools" style="display:contents">
+        <button class="btn" id="add-desk">+ Desk</button>
+        <button class="btn" id="add-row">+ Row…</button>
+        <button class="btn" id="add-zone">+ Area</button>
+        <span class="sep"></span>
+        <button class="btn" id="dup">Duplicate</button>
+        <button class="btn" id="rot">Rotate</button>
+        <button class="btn" id="del">Delete</button>
+        <span id="selcount" class="selcount">none selected</span>
+        <span class="sep"></span>
+      </span>
+      <button class="btn icon" id="zoomout" aria-label="Zoom out">−</button>
+      <button class="btn" id="zoom100" title="Back to 100%"><span id="zoomval">100%</span></button>
+      <button class="btn icon" id="zoomin" aria-label="Zoom in">+</button>
+      <button class="btn" id="zoomfit">Fit</button>
+    </div>
+
+    <p class="hint" id="hint"></p>
+  </div>
+</div>
+
+<input type="file" id="fileinput" accept="application/json,.json" hidden>
+<div id="ghost" hidden></div>
+<div id="toast" hidden></div>
+
+<dialog id="dlg-share">
+  <div class="dlg-head"><div class="eyebrow">Share</div><h2>Send this layout</h2></div>
+  <div class="dlg-body">
+    <p style="margin:0;color:var(--ink-2);line-height:1.5">The whole layout is packed into the link itself — whoever opens it sees exactly this arrangement. Their edits stay on their machine until they share a link back.</p>
+    <label>Link<input type="text" id="shareurl" readonly></label>
+    <span class="eyebrow" id="sharesize"></span>
+    <p id="framednote" hidden style="margin:0;color:var(--warn);line-height:1.5;font-size:13px">This copy runs inside a frame, so the link above may not open on its own. To hand out links, host <code>index.html</code> anywhere static (or open the file directly) — or use Data → Copy data.</p>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn" data-close>Close</button>
+    <button class="btn primary" id="copyurl">Copy link</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-versions">
+  <div class="dlg-head"><div class="eyebrow">Save</div><h2>Save and restore</h2></div>
+  <div class="dlg-body">
+    <p style="margin:0;color:var(--ink-2);line-height:1.5">Every change already saves to this browser automatically. Save a named version to mark a point you can come back to, or save a file to keep it outside the browser.</p>
+    <div class="add-row" style="margin-top:0">
+      <input type="text" id="vname" placeholder="Name this version (e.g. Q4 move)">
+      <button class="btn primary" id="savever">Save version</button>
+    </div>
+    <div class="add-row" style="margin-top:0">
+      <button class="btn" id="download" style="flex:1">Save to file (.json)</button>
+      <button class="btn" id="openfile" style="flex:1">Open a file…</button>
+    </div>
+    <div class="eyebrow" style="margin-top:4px">Saved versions</div>
+    <div class="vlist" id="vlist"></div>
+  </div>
+  <div class="dlg-foot"><button class="btn" data-close>Close</button></div>
+</dialog>
+
+<dialog id="dlg-data">
+  <div class="dlg-head"><div class="eyebrow">Data</div><h2>Copy, paste or reset</h2></div>
+  <div class="dlg-body">
+    <p style="margin:0;color:var(--ink-2);line-height:1.5">Copy this to keep a file backup, or paste someone else's layout in and load it.</p>
+    <textarea id="datatext" spellcheck="false" aria-label="Layout data"></textarea>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn" id="reset">Clear all</button>
+    <button class="btn" id="sample">Load sample</button>
+    <span class="spacer"></span>
+    <button class="btn" data-close>Close</button>
+    <button class="btn" id="copydata">Copy data</button>
+    <button class="btn primary" id="loaddata">Load pasted data</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-row">
+  <div class="dlg-head"><div class="eyebrow">Layout</div><h2>Add a row of desks</h2></div>
+  <form id="rowform">
+    <div class="dlg-body">
+      <div class="row2">
+        <label>How many<input type="number" id="rowcount" value="4" min="1" max="40"></label>
+        <label>Direction
+          <select id="rowdir" style="padding:7px 9px;background:var(--bg);border:1px solid var(--line);border-radius:6px">
+            <option value="h">Across</option>
+            <option value="v">Down</option>
+          </select>
+        </label>
+      </div>
+      <label>Name prefix<input type="text" id="rowprefix" value="D"></label>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Add desks</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

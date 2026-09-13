@@ -1,0 +1,13 @@
+# Simplest option: Caddy gets and renews the TLS cert on its own.
+#   apt install caddy && cp Caddyfile /etc/caddy/Caddyfile && systemctl reload caddy
+seating.example.com {
+	root * /var/www/seating
+	encode gzip zstd
+	file_server
+
+	# Three small files that change together — never serve a stale app.js
+	# against a new index.html.
+	header Cache-Control "no-cache"
+	header X-Content-Type-Options "nosniff"
+	header Referrer-Policy "no-referrer"
+}
