@@ -8,7 +8,9 @@ const FLOOR_W = 2000, FLOOR_H = 1300;
 const AUTOSAVE = "seatplan.autosave";
 const VERSIONS = "seatplan.versions";
 
-const TEAM_COLORS = ["#4338ca", "#0f7a5a", "#b4531f", "#8a2f6b", "#1f6f9c", "#7a6a12", "#a83232", "#3d6b2f"];
+// Teams carry a hue, not a colour: the surrounding CSS turns each hue into a
+// fill, an edge and a text tone that suit whichever theme is showing.
+const TEAM_HUES = [258, 190, 150, 95, 40, 10, 330, 285];
 
 const $ = (s, r = document) => r.querySelector(s);
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -25,11 +27,11 @@ function canonicalTeam(input) {
   return existing.find((e) => e.toLowerCase() === t.toLowerCase()) || t;
 }
 
-function teamColor(team) {
+function teamHue(team) {
   if (!team) return null;
   let h = 0;
   for (const ch of team.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return TEAM_COLORS[h % TEAM_COLORS.length];
+  return TEAM_HUES[h % TEAM_HUES.length];
 }
 
 /* ---------------- state ---------------- */
@@ -300,8 +302,10 @@ function renderRail() {
     `<b>${state.people.length - seatedIds.size}</b> to seat<span>·</span><b>${openSeats}</b> open desk${openSeats === 1 ? "" : "s"}`;
 
   const chip = (p, where) => `
-    <div class="chip${where ? " seated" : ""}${armedPerson === p.id ? " armed" : ""}" data-person="${p.id}" title="Drag to a desk · double-click to rename">
-      <span class="dot" style="background:${teamColor(p.team) || "var(--ink-3)"}"></span>
+    <div class="chip${where ? " seated" : ""}${armedPerson === p.id ? " armed" : ""}${p.team ? "" : " noteam"}"
+         data-person="${p.id}" title="Drag to a desk · double-click to rename"
+         ${p.team ? `style="--h:${teamHue(p.team)}"` : ""}>
+      <span class="dot"></span>
       <span class="nm">${esc(p.name)}${p.team ? ` <span style="color:var(--ink-3);font-size:12px">${esc(p.team)}</span>` : ""}</span>
       ${where ? `<span class="where">${esc(where)}</span>` : ""}
       <button class="x" data-edit="${p.id}" title="Rename" aria-label="Rename ${esc(p.name)}">✎</button>
@@ -339,8 +343,9 @@ function renderFloor() {
       return `<div class="item zone${selCls}" style="${base}" data-item="${it.id}">${esc(it.label)}${handle}</div>`;
     }
     const p = personById(state.assign[it.id]);
-    const stripe = p ? teamColor(p.team) || "var(--seated)" : "";
-    return `<div class="item desk${p ? " filled" : ""}${selCls}" style="${base}${stripe ? `;--stripe:${stripe}` : ""}"
+    const hue = p ? teamHue(p.team) : null;
+    return `<div class="item desk${p ? " filled" : ""}${p && !hue ? " noteam" : ""}${selCls}"
+       style="${base}${hue !== null ? `;--h:${hue}` : ""}"
        data-item="${it.id}" data-desk="${it.id}">
       <span class="id">${esc(it.label)}</span>
       ${p ? `<span class="who">${esc(p.name)}</span><span class="team">${esc(p.team || "")}</span>` : ""}

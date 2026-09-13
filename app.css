@@ -16,10 +16,14 @@
   --accent-soft: #e6e5fb;
   --accent-ink:  #ffffff;
 
-  --seated:      #0f7a5a;
-  --seated-soft: #dcf2ea;
   --empty-fill:  #ffffff;
   --warn:        #a8620a;
+
+  /* A team hue (--h) resolved into a fill, an edge and a text tone.
+     Pale washes on a light ground; the edge carries most of the signal. */
+  --tint-s: 66%;  --tint-l: 93%;
+  --edge-s: 52%;  --edge-l: 55%;
+  --mark-s: 58%;  --mark-l: 38%;
 
   --floor-bg:   #eef1f8;
   --floor-grid: #dfe4ef;
@@ -47,10 +51,14 @@
     --accent-soft: #262450;
     --accent-ink:  #10121c;
 
-    --seated:      #4fd1a5;
-    --seated-soft: #14332a;
     --empty-fill:  #1b2231;
     --warn:        #e0a458;
+
+    /* On a dark ground the fill has to do the work and the edge steps back,
+       or every desk reads as an outline. */
+    --tint-s: 38%;  --tint-l: 20%;
+    --edge-s: 42%;  --edge-l: 40%;
+    --mark-s: 72%;  --mark-l: 68%;
 
     --floor-bg:   #11161f;
     --floor-grid: #1c2331;
@@ -74,10 +82,14 @@
   --accent-soft: #262450;
   --accent-ink:  #10121c;
 
-  --seated:      #4fd1a5;
-  --seated-soft: #14332a;
   --empty-fill:  #1b2231;
   --warn:        #e0a458;
+
+  /* On a dark ground the fill has to do the work and the edge steps back,
+     or every desk reads as an outline. */
+  --tint-s: 38%;  --tint-l: 20%;
+  --edge-s: 42%;  --edge-l: 40%;
+  --mark-s: 72%;  --mark-l: 68%;
 
   --floor-bg:   #11161f;
   --floor-grid: #1c2331;
@@ -300,7 +312,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .chip .where {
   font-family: var(--mono);
   font-size: 11px;
-  color: var(--seated);
+  color: var(--ink-3);
 }
 .chip .x {
   border: 0;
@@ -315,11 +327,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .dot {
   flex: 0 0 auto;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--ink-3);
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: hsl(var(--h) var(--edge-s) var(--edge-l));
 }
+.chip.noteam .dot { background: transparent; border: 1px solid var(--ink-3); }
+
+/* the chip picks up a wash of its team, so the rail and the floor agree */
+.chip:not(.noteam) {
+  background: hsl(var(--h) var(--tint-s) var(--tint-l));
+  border-color: hsl(var(--h) var(--edge-s) var(--edge-l) / .45);
+}
+.chip:not(.noteam):hover { border-color: hsl(var(--h) var(--edge-s) var(--edge-l)); }
 
 .empty-note {
   padding: 10px 6px;
@@ -386,6 +406,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: var(--empty-fill);
   overflow: hidden;
 }
+.desk {
+  border-style: dashed;          /* an empty desk reads as an opening */
+}
 .desk .id {
   font-family: var(--mono);
   font-size: 10px;
@@ -411,22 +434,23 @@ button, input, select, textarea { font: inherit; color: inherit; }
   text-overflow: ellipsis;
 }
 .desk.filled {
-  background: var(--seated-soft);
-  border-color: var(--seated);
+  border-style: solid;
+  border-width: 2px;
+  background: hsl(var(--h) var(--tint-s) var(--tint-l));
+  border-color: hsl(var(--h) var(--edge-s) var(--edge-l));
   cursor: grab;
 }
 .desk.filled .who { color: var(--ink); }
-.desk.filled .id { color: var(--seated); }
+.desk.filled .id,
+.desk.filled .team { color: hsl(var(--h) var(--mark-s) var(--mark-l)); }
 
-/* left edge stripe marks the occupant's team */
-.desk.filled::before {
-  content: "";
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: var(--stripe, var(--seated));
-  border-radius: 5px 0 0 5px;
+/* seated, but no team recorded — occupied without claiming a colour */
+.desk.filled.noteam {
+  background: var(--surface-2);
+  border-color: var(--ink-3);
 }
+.desk.filled.noteam .id,
+.desk.filled.noteam .team { color: var(--ink-3); }
 
 .item.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
 .desk.drop { border-color: var(--accent); background: var(--accent-soft); }
@@ -650,3 +674,11 @@ dialog::backdrop { background: rgba(14, 17, 24, .45); }
 .combo-opt .n { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
 .combo-opt.is-new { color: var(--ink-3); }
 .combo-opt.is-new b { color: var(--ink); font-weight: 600; }
+
+/* armed-for-assignment has to beat the team wash */
+.chip.armed,
+.chip.armed:not(.noteam) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.chip.seated { opacity: .92; }
