@@ -244,6 +244,20 @@ function makeCombo(input, getOptions) {
     ).join("");
     pop.hidden = false;
     input.setAttribute("aria-expanded", "true");
+    place();
+  };
+
+  // anchored to the input in viewport space, flipping above when the space
+  // below is too tight (which it is for the field at the bottom of a dialog)
+  const place = () => {
+    if (pop.hidden) return;
+    const r = input.getBoundingClientRect();
+    const w = Math.max(r.width, 190);
+    pop.style.width = w + "px";
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + "px";
+    const h = pop.offsetHeight;
+    const below = window.innerHeight - r.bottom;
+    pop.style.top = (below < h + 12 && r.top > below ? r.top - h - 4 : r.bottom + 4) + "px";
   };
 
   const setActive = (i) => {
@@ -266,6 +280,8 @@ function makeCombo(input, getOptions) {
   input.addEventListener("focus", draw);
   input.addEventListener("pointerdown", () => { if (pop.hidden) setTimeout(draw, 0); });
   input.addEventListener("blur", () => setTimeout(close, 120));
+  window.addEventListener("scroll", place, true);
+  window.addEventListener("resize", place);
 
   input.addEventListener("keydown", (e) => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {

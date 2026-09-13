@@ -640,10 +640,10 @@ dialog::backdrop { background: rgba(14, 17, 24, .45); }
 #team-combo { flex: 0 0 96px; }
 
 .combo-pop {
-  position: absolute;
+  /* fixed, and positioned in JS: an absolute popup is clipped by the dialog's
+     own scroll box, which hid the list almost entirely inside Edit person. */
+  position: fixed;
   z-index: 40;
-  top: calc(100% + 4px);
-  left: 0;
   min-width: 190px;
   max-height: 210px;
   overflow-y: auto;
