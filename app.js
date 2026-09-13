@@ -320,6 +320,7 @@ function toast(msg) {
 /* ---------------- person drag ---------------- */
 
 let drag = null;
+let lastChipClick = null;
 
 function startPersonDrag(personId, ev, fromDeskId) {
   drag = { personId, fromDeskId, moved: false, x: ev.clientX, y: ev.clientY };
@@ -361,6 +362,16 @@ function onPersonUp(ev) {
   if (!d) return;
 
   if (!d.moved) {                                   // a click, not a drag
+    // Arming re-renders the rail, which replaces the chip element — so the
+    // browser never sees a native dblclick on it. Pair the clicks ourselves.
+    const now = Date.now();
+    if (lastChipClick && lastChipClick.id === d.personId && now - lastChipClick.t < 450) {
+      lastChipClick = null;
+      openRename("person", d.personId);
+      renderRail();
+      return;
+    }
+    lastChipClick = { id: d.personId, t: now };
     armedPerson = armedPerson === d.personId ? null : d.personId;
     renderRail();
     return;
@@ -657,7 +668,7 @@ function wire() {
   });
   $("#pool").addEventListener("dblclick", (e) => {
     const chip = e.target.closest("[data-person]");
-    if (chip) openRename("person", chip.dataset.person);
+    if (chip && !$("#dlg-rename").open) openRename("person", chip.dataset.person);
   });
 
   $("#pool").addEventListener("click", (e) => {
