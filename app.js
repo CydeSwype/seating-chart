@@ -168,7 +168,6 @@ function assignPerson(personId, deskId) {
 
 function render() {
   $("#title").value = state.title;
-  renderTeams();
   renderRail();
   renderFloor();
   $("#undo").disabled = !past.length;
@@ -183,14 +182,109 @@ function render() {
     : "<b>Layout:</b> drag across the floor to rubber-band a group, <b>⇧-click</b> to add or drop one, <b>⌘A</b> for all. Dragging any selected desk moves the whole group. Click an area to select it before dragging it. Corner handle resizes, double-click renames; <b>R</b> rotates, <b>⌫</b> deletes, arrows nudge, <b>⌘C</b>/<b>⌘V</b> copy and paste.";
 }
 
-function renderTeams() {
+function teamOptions() {
   const counts = new Map();
   for (const p of state.people) {
     const t = (p.team || "").trim();
     if (t) counts.set(t, (counts.get(t) || 0) + 1);
   }
-  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  $("#teams").innerHTML = sorted.map(([t, n]) => `<option value="${esc(t)}">${n}</option>`).join("");
+  return [...counts.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+}
+
+/* Typeahead over the teams already in use: substring match, most-used first,
+   with free text allowed so a new team is just typed. */
+function makeCombo(input, getOptions) {
+  const pop = document.createElement("ul");
+  pop.className = "combo-pop";
+  pop.setAttribute("role", "listbox");
+  pop.hidden = true;
+  input.parentElement.appendChild(pop);
+
+  let shown = [], active = -1;
+
+  const close = () => {
+    pop.hidden = true;
+    active = -1;
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  };
+
+  const mark = (value, q) => {
+    const at = q ? value.toLowerCase().indexOf(q) : -1;
+    if (at < 0) return esc(value);
+    return esc(value.slice(0, at)) + "<mark>" + esc(value.slice(at, at + q.length)) + "</mark>" + esc(value.slice(at + q.length));
+  };
+
+  const draw = () => {
+    const raw = input.value.trim();
+    const q = raw.toLowerCase();
+    const all = getOptions();
+    shown = all
+      .filter((o) => !q || o.value.toLowerCase().includes(q))
+      .sort((a, b) => {
+        const rank = (o) => (q && o.value.toLowerCase().startsWith(q) ? 0 : 1);
+        return rank(a) - rank(b) || b.count - a.count || a.value.localeCompare(b.value);
+      });
+
+    // offer the typed text as a new team when it isn't one already
+    const exact = raw && all.some((o) => o.value.toLowerCase() === q);
+    const addNew = raw && !exact ? { value: raw, isNew: true } : null;
+    if (addNew) shown.push(addNew);
+
+    if (!shown.length) { close(); return; }
+    if (active >= shown.length) active = shown.length - 1;
+
+    pop.innerHTML = shown.map((o, i) => o.isNew
+      ? `<li class="combo-opt is-new" role="option" id="${input.id}-o${i}" aria-selected="${i === active}" data-i="${i}">Add team <b>${esc(o.value)}</b></li>`
+      : `<li class="combo-opt" role="option" id="${input.id}-o${i}" aria-selected="${i === active}" data-i="${i}"><span>${mark(o.value, q)}</span><span class="n">${o.count}</span></li>`
+    ).join("");
+    pop.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+  };
+
+  const setActive = (i) => {
+    active = i;
+    [...pop.children].forEach((li, n) => li.setAttribute("aria-selected", String(n === i)));
+    if (i >= 0) {
+      input.setAttribute("aria-activedescendant", `${input.id}-o${i}`);
+      pop.children[i].scrollIntoView({ block: "nearest" });
+    } else input.removeAttribute("aria-activedescendant");
+  };
+
+  const choose = (i) => {
+    if (!shown[i]) return;
+    input.value = shown[i].value;
+    close();
+    input.focus();
+  };
+
+  input.addEventListener("input", () => { active = -1; draw(); });
+  input.addEventListener("focus", draw);
+  input.addEventListener("pointerdown", () => { if (pop.hidden) setTimeout(draw, 0); });
+  input.addEventListener("blur", () => setTimeout(close, 120));
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (pop.hidden) { draw(); setActive(0); return; }
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      setActive((active + step + shown.length) % shown.length);
+    } else if (e.key === "Enter") {
+      if (!pop.hidden && active >= 0) { e.preventDefault(); choose(active); }  // else the form submits
+    } else if (e.key === "Escape") {
+      if (!pop.hidden) { e.preventDefault(); e.stopPropagation(); close(); }
+    } else if (e.key === "Tab") close();
+  });
+
+  pop.addEventListener("mousedown", (e) => e.preventDefault());   // keep focus on the input
+  pop.addEventListener("click", (e) => {
+    const li = e.target.closest("[data-i]");
+    if (li) choose(+li.dataset.i);
+  });
+
+  return { close };
 }
 
 function renderRail() {
@@ -665,6 +759,9 @@ function wire() {
   $("#datadlg").onclick = () => { $("#datatext").value = JSON.stringify(state, null, 2); $("#dlg-data").showModal(); };
 
   /* people */
+  makeCombo($("#team"), teamOptions);
+  makeCombo($("#rn-team"), teamOptions);
+
   $("#addform").addEventListener("submit", (e) => {
     e.preventDefault();
     const name = $("#pname").value.trim();

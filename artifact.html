@@ -30,7 +30,7 @@
       <div class="counts" id="counts"></div>
       <form class="add-row" id="addform">
         <input id="pname" placeholder="Add person" aria-label="Person name" autocomplete="off">
-        <input id="team" placeholder="Team" aria-label="Team" list="teams" autocomplete="off">
+        <div class="combo" id="team-combo"><input id="team" placeholder="Team" aria-label="Team" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list"></div>
         <button class="btn" type="submit">Add</button>
       </form>
       <input id="search" placeholder="Search people or teams" aria-label="Search people" autocomplete="off">
@@ -66,7 +66,6 @@
   </div>
 </div>
 
-<datalist id="teams"></datalist>
 <input type="file" id="fileinput" accept="application/json,.json" hidden>
 <div id="ghost" hidden></div>
 <div id="toast" hidden></div>
@@ -124,7 +123,7 @@
     <div class="dlg-head"><div class="eyebrow" id="rn-kind">Rename</div><h2 id="rn-title">Rename</h2></div>
     <div class="dlg-body">
       <label>Name<input type="text" id="rn-name" autocomplete="off"></label>
-      <label id="rn-teamwrap">Team<input type="text" id="rn-team" list="teams" autocomplete="off" placeholder="Optional — sets the colour dot"></label>
+      <label id="rn-teamwrap">Team<div class="combo"><input type="text" id="rn-team" autocomplete="off" placeholder="Optional — sets the colour dot" role="combobox" aria-expanded="false" aria-autocomplete="list"></div></label>
     </div>
     <div class="dlg-foot">
       <button class="btn" type="button" data-close>Cancel</button>
