@@ -10,6 +10,7 @@ Open `index.html` in a browser, or serve the folder from any static host.
 - `artifact.html` — same markup, wrapped for publishing as a Claude Artifact (generated from `index.html`; head/body tags stripped)
 
 ## How it works
+- **Teams** — the Team field autocompletes from teams already in the plan, most-used first, in both the add-person row and the rename dialog. Typing a new one adds it to the list; typing `platform` when `Platform` exists reuses the existing team rather than creating a near-duplicate with its own colour.
 - **Assign mode** — drag a name from the left rail onto a desk. Drag a seated name onto another desk to swap; drag it back to the rail to unseat. Click a name then click a desk if you prefer clicking (also what works on touch).
 - **Layout mode** — add desks, rows of desks, and labelled areas; drag to move (snaps to a 10px grid), corner handle resizes, double-click renames. `R` rotates, `backspace` deletes, arrows nudge (shift = 5x).
 - **Group edits** — drag across the floor to rubber-band a group, shift-click to add or drop one desk, `cmd-A` selects everything. Dragging any selected desk moves the whole group, and nudge/rotate/duplicate/delete all apply to the selection. A group move is a single undo step. Desks join a band when it touches them; areas join only when the band encloses them whole, so you can rubber-band a row that sits inside an area. Click an area once to select it, then drag to move it.

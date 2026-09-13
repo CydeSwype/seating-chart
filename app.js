@@ -16,6 +16,15 @@ const snap = (n) => Math.round(n / GRID) * GRID;
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+/* "platform" typed against an existing "Platform" should be the same team,
+   not a second one with its own colour. */
+function canonicalTeam(input) {
+  const t = (input || "").trim();
+  if (!t) return "";
+  const existing = state.people.map((p) => (p.team || "").trim()).filter(Boolean);
+  return existing.find((e) => e.toLowerCase() === t.toLowerCase()) || t;
+}
+
 function teamColor(team) {
   if (!team) return null;
   let h = 0;
@@ -159,6 +168,7 @@ function assignPerson(personId, deskId) {
 
 function render() {
   $("#title").value = state.title;
+  renderTeams();
   renderRail();
   renderFloor();
   $("#undo").disabled = !past.length;
@@ -171,6 +181,16 @@ function render() {
   $("#hint").innerHTML = mode === "assign"
     ? "<b>Assign:</b> drag a name onto a desk, or click a name then click a desk. Drag between desks to swap. Drag a seated name to the list to unseat. Double-click a name or a desk to rename it."
     : "<b>Layout:</b> drag across the floor to rubber-band a group, <b>⇧-click</b> to add or drop one, <b>⌘A</b> for all. Dragging any selected desk moves the whole group. Click an area to select it before dragging it. Corner handle resizes, double-click renames; <b>R</b> rotates, <b>⌫</b> deletes, arrows nudge, <b>⌘C</b>/<b>⌘V</b> copy and paste.";
+}
+
+function renderTeams() {
+  const counts = new Map();
+  for (const p of state.people) {
+    const t = (p.team || "").trim();
+    if (t) counts.set(t, (counts.get(t) || 0) + 1);
+  }
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  $("#teams").innerHTML = sorted.map(([t, n]) => `<option value="${esc(t)}">${n}</option>`).join("");
 }
 
 function renderRail() {
@@ -294,7 +314,7 @@ function applyRename(e) {
   if (!r) return;
 
   const name = $("#rn-name").value.trim();
-  const team = $("#rn-team").value.trim();
+  const team = canonicalTeam($("#rn-team").value);
   const subject = r.kind === "item" ? itemById(r.id) : personById(r.id);
   if (!subject) return;
   if (!name) { toast("A name can't be empty."); return; }
@@ -649,7 +669,8 @@ function wire() {
     e.preventDefault();
     const name = $("#pname").value.trim();
     if (!name) return;
-    const team = $("#team").value.trim();
+    const team = canonicalTeam($("#team").value);
+    $("#team").value = team;                 // keep it for the next person
     commit(() => {
       name.split(/\s*,\s*/).filter(Boolean).forEach((n) => state.people.push({ id: uid(), name: n, team }));
     });
