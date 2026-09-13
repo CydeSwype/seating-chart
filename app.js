@@ -169,7 +169,7 @@ function render() {
   $("#layouttools").hidden = mode !== "layout";
   updateSelCount();
   $("#hint").innerHTML = mode === "assign"
-    ? "<b>Assign:</b> drag a name onto a desk, or click a name then click a desk. Drag between desks to swap. Drag a seated name to the list to unseat."
+    ? "<b>Assign:</b> drag a name onto a desk, or click a name then click a desk. Drag between desks to swap. Drag a seated name to the list to unseat. Double-click a name or a desk to rename it."
     : "<b>Layout:</b> drag across the floor to rubber-band a group, <b>⇧-click</b> to add or drop one, <b>⌘A</b> for all. Dragging any selected desk moves the whole group. Click an area to select it before dragging it. Corner handle resizes, double-click renames; <b>R</b> rotates, <b>⌫</b> deletes, arrows nudge, <b>⌘C</b>/<b>⌘V</b> copy and paste.";
 }
 
@@ -186,10 +186,11 @@ function renderRail() {
     `<b>${state.people.length - seatedIds.size}</b> to seat<span>·</span><b>${openSeats}</b> open desk${openSeats === 1 ? "" : "s"}`;
 
   const chip = (p, where) => `
-    <div class="chip${where ? " seated" : ""}${armedPerson === p.id ? " armed" : ""}" data-person="${p.id}" title="Drag to a desk">
+    <div class="chip${where ? " seated" : ""}${armedPerson === p.id ? " armed" : ""}" data-person="${p.id}" title="Drag to a desk · double-click to rename">
       <span class="dot" style="background:${teamColor(p.team) || "var(--ink-3)"}"></span>
       <span class="nm">${esc(p.name)}${p.team ? ` <span style="color:var(--ink-3);font-size:12px">${esc(p.team)}</span>` : ""}</span>
       ${where ? `<span class="where">${esc(where)}</span>` : ""}
+      <button class="x" data-edit="${p.id}" title="Rename" aria-label="Rename ${esc(p.name)}">✎</button>
       <button class="x" data-remove="${p.id}" title="Remove person" aria-label="Remove ${esc(p.name)}">×</button>
     </div>`;
 
@@ -264,6 +265,48 @@ function zoomFit() {
   renderFloor();
   wrap.scrollLeft = bb.x * zoom + FLOOR_PAD - (rect.width - bb.w * zoom) / 2;
   wrap.scrollTop = bb.y * zoom + FLOOR_PAD - (rect.height - bb.h * zoom) / 2;
+}
+
+let renaming = null;   // { kind: "item" | "person", id }
+
+function openRename(kind, id) {
+  const subject = kind === "item" ? itemById(id) : personById(id);
+  if (!subject) return;
+  renaming = { kind, id };
+  armedPerson = null;
+
+  const isPerson = kind === "person";
+  $("#rn-kind").textContent = isPerson ? "Person" : subject.type === "desk" ? "Desk" : "Area";
+  $("#rn-title").textContent = isPerson ? "Edit person" : subject.type === "desk" ? "Rename desk" : "Rename area";
+  $("#rn-name").value = isPerson ? subject.name : subject.label;
+  $("#rn-team").value = isPerson ? subject.team || "" : "";
+  $("#rn-teamwrap").hidden = !isPerson;
+
+  $("#dlg-rename").showModal();
+  $("#rn-name").select();
+}
+
+function applyRename(e) {
+  e.preventDefault();
+  const r = renaming;
+  $("#dlg-rename").close();
+  renaming = null;
+  if (!r) return;
+
+  const name = $("#rn-name").value.trim();
+  const team = $("#rn-team").value.trim();
+  const subject = r.kind === "item" ? itemById(r.id) : personById(r.id);
+  if (!subject) return;
+  if (!name) { toast("A name can't be empty."); return; }
+
+  if (r.kind === "person") {
+    if (subject.name === name && (subject.team || "") === team) return;
+    commit(() => { subject.name = name; subject.team = team; });
+  } else {
+    if (subject.label === name) return;
+    commit(() => { subject.label = name; });
+  }
+  renderRail();
 }
 
 function toast(msg) {
@@ -605,15 +648,21 @@ function wire() {
   $("#search").addEventListener("input", renderRail);
 
   $("#pool").addEventListener("pointerdown", (e) => {
-    const rm = e.target.closest("[data-remove]");
-    if (rm) return;
+    if (e.target.closest("[data-remove]") || e.target.closest("[data-edit]")) return;
     const chip = e.target.closest("[data-person]");
     if (!chip) return;
     e.preventDefault();
     const pid = chip.dataset.person;
     startPersonDrag(pid, e, seatOf(pid));
   });
+  $("#pool").addEventListener("dblclick", (e) => {
+    const chip = e.target.closest("[data-person]");
+    if (chip) openRename("person", chip.dataset.person);
+  });
+
   $("#pool").addEventListener("click", (e) => {
+    const ed = e.target.closest("[data-edit]");
+    if (ed) { openRename("person", ed.dataset.edit); return; }
     const rm = e.target.closest("[data-remove]");
     if (!rm) return;
     const id = rm.dataset.remove;
@@ -672,10 +721,7 @@ function wire() {
 
   floor.addEventListener("dblclick", (e) => {
     const itemEl = e.target.closest(".item");
-    if (!itemEl) return;
-    const item = itemById(itemEl.dataset.item);
-    const label = prompt(item.type === "desk" ? "Desk name" : "Area name", item.label);
-    if (label !== null) commit(() => { item.label = label.trim() || item.label; });
+    if (itemEl) openRename("item", itemEl.dataset.item);
   });
 
   /* layout tools */
@@ -687,6 +733,10 @@ function wire() {
     addRow(clamp(parseInt($("#rowcount").value, 10) || 4, 1, 40), $("#rowdir").value, $("#rowprefix").value.trim() || "D");
     $("#dlg-row").close();
   });
+  $("#rename").onclick = () => {
+    if (sel.size !== 1) return toast(sel.size ? "Select just one desk or area to rename" : "Select a desk or area first");
+    openRename("item", [...sel][0]);
+  };
   $("#dup").onclick = () => {
     const items = selItems();
     if (!items.length) return toast("Select a desk or area first");
@@ -721,6 +771,7 @@ function wire() {
 
   /* dialogs */
   document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = () => b.closest("dialog").close()));
+  $("#renameform").addEventListener("submit", applyRename);
   $("#savever").onclick = saveVersion;
   $("#download").onclick = downloadFile;
   $("#openfile").onclick = () => $("#fileinput").click();

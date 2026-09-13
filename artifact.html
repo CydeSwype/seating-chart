@@ -49,6 +49,7 @@
         <button class="btn" id="add-row">+ Row…</button>
         <button class="btn" id="add-zone">+ Area</button>
         <span class="sep"></span>
+        <button class="btn" id="rename">Rename</button>
         <button class="btn" id="dup">Duplicate</button>
         <button class="btn" id="rot">Rotate</button>
         <button class="btn" id="del">Delete</button>
@@ -115,6 +116,20 @@
     <button class="btn" id="copydata">Copy data</button>
     <button class="btn primary" id="loaddata">Load pasted data</button>
   </div>
+</dialog>
+
+<dialog id="dlg-rename">
+  <form id="renameform">
+    <div class="dlg-head"><div class="eyebrow" id="rn-kind">Rename</div><h2 id="rn-title">Rename</h2></div>
+    <div class="dlg-body">
+      <label>Name<input type="text" id="rn-name" autocomplete="off"></label>
+      <label id="rn-teamwrap">Team<input type="text" id="rn-team" autocomplete="off" placeholder="Optional — sets the colour dot"></label>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
 </dialog>
 
 <dialog id="dlg-row">

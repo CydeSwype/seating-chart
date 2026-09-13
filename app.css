@@ -603,3 +603,9 @@ dialog::backdrop { background: rgba(14, 17, 24, .45); }
   white-space: nowrap;
 }
 #zoom100 { font-family: var(--mono); font-size: 12px; padding: 0 8px; }
+
+/* rename affordances */
+.dlg-body label[hidden] { display: none; }
+.chip .x { font-size: 13px; opacity: .55; }
+.chip .x:hover { opacity: 1; }
+.chip [data-remove] { font-size: 15px; }

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=202609132104">
+<link rel="stylesheet" href="app.css?v=202609132128">
 </head>
 <body>
 
@@ -57,6 +57,7 @@
         <button class="btn" id="add-row">+ Row…</button>
         <button class="btn" id="add-zone">+ Area</button>
         <span class="sep"></span>
+        <button class="btn" id="rename">Rename</button>
         <button class="btn" id="dup">Duplicate</button>
         <button class="btn" id="rot">Rotate</button>
         <button class="btn" id="del">Delete</button>
@@ -125,6 +126,20 @@
   </div>
 </dialog>
 
+<dialog id="dlg-rename">
+  <form id="renameform">
+    <div class="dlg-head"><div class="eyebrow" id="rn-kind">Rename</div><h2 id="rn-title">Rename</h2></div>
+    <div class="dlg-body">
+      <label>Name<input type="text" id="rn-name" autocomplete="off"></label>
+      <label id="rn-teamwrap">Team<input type="text" id="rn-team" autocomplete="off" placeholder="Optional — sets the colour dot"></label>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-row">
   <div class="dlg-head"><div class="eyebrow">Layout</div><h2>Add a row of desks</h2></div>
   <form id="rowform">
@@ -147,6 +162,6 @@
   </form>
 </dialog>
 
-<script src="app.js?v=202609132104"></script>
+<script src="app.js?v=202609132128"></script>
 </body>
 </html>
