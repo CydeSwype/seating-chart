@@ -29,17 +29,23 @@ Share links only work when the page is served from a real URL (a static host, or
 Buttons zoom around the middle of the view, `ctrl`/`cmd` + scroll (or trackpad pinch) zooms around the pointer, `cmd +` / `cmd -` / `cmd 0` from the keyboard, and **Fit** frames everything you've laid out. Range is 25%–250%.
 
 ## Hosting
-Static hosting only — there is no backend, no database, and no build. Ship `index.html`, `app.css` and `app.js` (about 40 KB, ~20 KB gzipped) and you're done.
+
+Static hosting only — no backend, no database, no build step. The whole app is `index.html`, `app.css` and `app.js` (~40 KB, ~20 KB gzipped).
+
+**Live at <https://cydeswype.github.io/seating-chart/>**, served by GitHub Pages from `main`. To deploy, push:
 
 ```bash
-HOST=root@your-hetzner-box DEST=/var/www/seating ./deploy.sh
+./tools/bump.sh && git commit -am "…" && git push
 ```
 
-Server configs to copy: [`deploy/Caddyfile`](deploy/Caddyfile) (auto-HTTPS, simplest) or [`deploy/nginx.conf`](deploy/nginx.conf).
+`tools/bump.sh` stamps the asset links in `index.html` with the current time and regenerates `artifact.html`. Pages caches files for ten minutes, so without the stamp a browser can pair a fresh `index.html` with a stale `app.js`. Run it whenever `app.js` or `app.css` changes.
 
-Two things the host must get right:
+### Self-hosting instead
 
-1. **Serve it over HTTPS.** The copy-to-clipboard calls behind *Share link* and *Copy data* need a secure context; over plain `http://` on a real domain they silently fail (localhost is exempt). Both configs redirect port 80 and terminate TLS.
-2. **Don't cache the three files hard.** They change as a set, so a stale `app.js` against a fresh `index.html` breaks the page. Both configs send `Cache-Control: no-cache`, which still revalidates cheaply.
+Pages is public to anyone with the URL. If the plan should sit behind the VPN or a password, host it yourself — [`deploy.sh`](deploy.sh) rsyncs the files over SSH, with [`deploy/Caddyfile`](deploy/Caddyfile) (auto-HTTPS) or [`deploy/nginx.conf`](deploy/nginx.conf) to serve them:
 
-Share links work fully once hosted: the fragment holding the layout never leaves the browser, so there's no URL-length limit at the server and nothing to store.
+```bash
+HOST=root@your-box DEST=/var/www/seating ./deploy.sh
+```
+
+Wherever it lands, serve it over **HTTPS** — the copy-to-clipboard behind *Share link* and *Copy data* needs a secure context and fails silently on plain `http://` (localhost is exempt). Share links work the same on any host: the fragment holding the layout never reaches the server, so there's no URL length limit and nothing to store.
